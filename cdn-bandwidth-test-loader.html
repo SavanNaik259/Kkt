@@ -229,12 +229,26 @@
         <div id="products" class="product-grid"></div>
     </div>
 
-    <!-- No Firebase client SDK needed - using Netlify functions -->
+    <!-- Firebase SDK for proper Storage access -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
     <script>
-        // No Firebase client SDK needed - using Netlify functions instead
-        console.log('✅ CDN Bandwidth Test Loader ready - using Netlify functions');
-        showMessage('🔥 Ready for CDN testing via Netlify functions!', 'success');
+        // Initialize Firebase for proper Storage access
+        const firebaseConfig = {
+            apiKey: "AIzaSyCrLCButDevLeILcBjrUCd9e7amXVjW-uI",
+            authDomain: "auric-a0c92.firebaseapp.com",
+            projectId: "auric-a0c92",
+            storageBucket: "auric-a0c92.firebasestorage.app",
+            messagingSenderId: "878979958342",
+            appId: "1:878979958342:web:e6092f7522488d21eaec47"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const storage = firebase.storage();
+        
+        console.log('✅ CDN Bandwidth Test Loader ready - using Firebase SDK');
+        showMessage('🔥 Ready for CDN testing via Firebase SDK!', 'success');
 
         function showMessage(message, type = 'info') {
             const messagesDiv = document.getElementById('messages');
@@ -259,16 +273,22 @@
                 
                 const startTime = performance.now();
                 
-                // Use direct Firebase Storage CDN URL for maximum caching efficiency
-                const firebaseUrl = `https://firebasestorage.googleapis.com/v0/b/auric-a0c92.firebasestorage.app/o/bandwidthTest%2F${category}-products.json?alt=media`;
+                // Use Firebase SDK to get proper download URL with caching
+                const storageRef = storage.ref(`bandwidthTest/${category}-products.json`);
+                
+                console.log(`🌐 Getting Firebase Storage download URL for ${category}`);
+                
+                // Get the download URL
+                const downloadURL = await storageRef.getDownloadURL();
+                
+                console.log(`📡 Fetching from Firebase Storage CDN: ${downloadURL}`);
                 
                 const fetchOptions = {
                     cache: cacheMode,
                     method: 'GET'
                 };
                 
-                console.log(`🌐 Fetching directly from Firebase Storage CDN with cache mode: ${cacheMode}`);
-                const response = await fetch(firebaseUrl, fetchOptions);
+                const response = await fetch(downloadURL, fetchOptions);
                 
                 const endTime = performance.now();
                 const requestTime = endTime - startTime;
@@ -359,8 +379,12 @@
             for (const category of categories) {
                 try {
                     const startTime = performance.now();
-                    const firebaseUrl = `https://firebasestorage.googleapis.com/v0/b/auric-a0c92.firebasestorage.app/o/bandwidthTest%2F${category}-products.json?alt=media`;
-                    const response = await fetch(firebaseUrl);
+                    
+                    // Use Firebase SDK to get download URL
+                    const storageRef = storage.ref(`bandwidthTest/${category}-products.json`);
+                    const downloadURL = await storageRef.getDownloadURL();
+                    const response = await fetch(downloadURL);
+                    
                     const endTime = performance.now();
                     
                     totalTime += (endTime - startTime);
