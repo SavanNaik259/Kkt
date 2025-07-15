@@ -110,7 +110,13 @@ exports.handler = async (event, context) => {
     const bucket = admin.storage().bucket();
 
     // Try to download the products JSON file for the specific category
-    const file = bucket.file(`productData/${category}-products.json`);
+    // Check if this is a bandwidth test category
+    const isBandwidthTest = category.startsWith('bandwidth-test-');
+    const filePath = isBandwidthTest 
+      ? `bandwidthTest/${category}-products.json`
+      : `productData/${category}-products.json`;
+    
+    const file = bucket.file(filePath);
 
     // Check if file exists
     const [exists] = await file.exists();

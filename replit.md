@@ -184,6 +184,9 @@ Auric is a premium jewelry e-commerce platform built with a modern web stack fea
   - User configured all required Netlify environment variables for Firebase Admin SDK
   - Firebase credentials confirmed working: project auric-a0c92, admin SDK configured
   - CDN bandwidth testing now works through server proxy while maintaining caching benefits
+  - Fixed Netlify deployment compatibility by updating bandwidth test loader to use Netlify functions
+  - Updated Netlify function to handle both regular products and bandwidth test categories from correct folders
+  - Fixed bandwidth test loader to automatically detect Netlify vs local environment and use appropriate endpoints
 
 ## User Preferences
 
