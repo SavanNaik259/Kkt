@@ -138,7 +138,11 @@
                 
                 if (response.ok) {
                     const data = await response.json();
-                    showResult(`✅ Server-side: SUCCESS - ${data.message}`, 'success');
+                    if (data.success) {
+                        showResult(`✅ Server-side: SUCCESS - ${data.message}`, 'success');
+                    } else {
+                        showResult(`❌ Server-side: FAILED - ${data.message}`, 'error');
+                    }
                 } else {
                     showResult(`❌ Server-side: FAILED - Status ${response.status}`, 'error');
                 }
