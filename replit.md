@@ -189,6 +189,14 @@ Auric is a premium jewelry e-commerce platform built with a modern web stack fea
   - Fixed bandwidth test loader to automatically detect Netlify vs local environment and use appropriate endpoints
   - User confirmed CDN bandwidth testing is working correctly on deployed site
   - Validated Firebase Storage CDN behavior: First user per region downloads from Firebase (triggers bandwidth), subsequent users get cached files from CDN (no bandwidth cost)
+- July 15, 2025: Fixed critical Netlify bandwidth issue - Netlify functions now use direct CDN URLs
+  - Issue: Netlify functions were using signed URLs and Firebase Admin SDK downloads, consuming bandwidth on every request
+  - Root cause: `getSignedUrl()` and `file.download()` bypass Firebase Storage CDN caching
+  - Solution: Updated both `load-products.js` and `load-bandwidth-test-products.js` to use direct Firebase Storage URLs with `alt=media`
+  - Result: Netlify functions now act as simple proxies, allowing Firebase Storage CDN to handle all caching automatically
+  - Architecture: Removed Firebase Admin SDK dependency from product loading functions, using direct HTTP requests instead
+  - Testing: Created `test-netlify-bandwidth-fix.html` to verify CDN behavior and cache headers
+  - Expected behavior: First user per region triggers bandwidth, subsequent users get cached files with zero bandwidth cost
 
 ## User Preferences
 
