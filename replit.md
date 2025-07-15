@@ -197,6 +197,10 @@ Auric is a premium jewelry e-commerce platform built with a modern web stack fea
   - Architecture: Removed Firebase Admin SDK dependency from product loading functions, using direct HTTP requests instead
   - Testing: Created `test-netlify-bandwidth-fix.html` to verify CDN behavior and cache headers
   - Expected behavior: First user per region triggers bandwidth, subsequent users get cached files with zero bandwidth cost
+  - Additional fix: Updated `js/bridal-products-loader.js` to bypass Netlify functions on deployed sites
+  - Production behavior: Bridal products now load directly from Firebase Storage CDN URLs when deployed
+  - Development behavior: Still uses server endpoint for local development to maintain consistency
+  - Created `direct-cdn-bandwidth-test.html` for testing true CDN behavior without any proxy layers
 
 ## User Preferences
 
