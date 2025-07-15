@@ -4,7 +4,9 @@
 (function() {
     console.log('Force reloading products from Cloud Storage...');
       
-    // Clear localStorage cache
+    // Clear localStorage cache 
+
+    
     localStorage.removeItem('bridalProducts');
     localStorage.removeItem('bridalProductsTime');
     console.log('Cleared localStorage cache');
