@@ -187,6 +187,8 @@ Auric is a premium jewelry e-commerce platform built with a modern web stack fea
   - Fixed Netlify deployment compatibility by updating bandwidth test loader to use Netlify functions
   - Updated Netlify function to handle both regular products and bandwidth test categories from correct folders
   - Fixed bandwidth test loader to automatically detect Netlify vs local environment and use appropriate endpoints
+  - User confirmed CDN bandwidth testing is working correctly on deployed site
+  - Validated Firebase Storage CDN behavior: First user per region downloads from Firebase (triggers bandwidth), subsequent users get cached files from CDN (no bandwidth cost)
 
 ## User Preferences
 
