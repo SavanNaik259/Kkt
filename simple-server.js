@@ -285,6 +285,44 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+/**
+ * Test Firebase Storage access
+ * Helps diagnose connectivity issues
+ */
+app.get('/api/test-firebase-access', async (req, res) => {
+  try {
+    // Try to access Firebase Storage directly
+    const testUrl = 'https://firebasestorage.googleapis.com/v0/b/auric-a0c92.firebasestorage.app/o/bandwidthTest%2Fbandwidth-test-1-products.json?alt=media';
+    
+    const response = await fetch(testUrl);
+    
+    if (response.ok) {
+      const data = await response.json();
+      
+      res.json({
+        success: true,
+        message: `Successfully accessed Firebase Storage - found ${data.length} products`,
+        url: testUrl,
+        status: response.status,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+    } else {
+      res.json({
+        success: false,
+        message: `Failed to access Firebase Storage - Status ${response.status}: ${response.statusText}`,
+        url: testUrl,
+        status: response.status
+      });
+    }
+  } catch (error) {
+    res.json({
+      success: false,
+      message: `Error accessing Firebase Storage: ${error.message}`,
+      error: error.toString()
+    });
+  }
+});
+
 // Serve static files from the current directory
 app.use(express.static('.', {
   // Set a standard Content-Type based on file extension

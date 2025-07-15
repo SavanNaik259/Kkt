@@ -285,7 +285,8 @@
                 
                 const fetchOptions = {
                     cache: cacheMode,
-                    method: 'GET'
+                    method: 'GET',
+                    mode: 'cors'
                 };
                 
                 const response = await fetch(downloadURL, fetchOptions);
@@ -306,6 +307,12 @@
                         return;
                     }
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                // Check if response is actually JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    console.warn('Response is not JSON, content-type:', contentType);
                 }
                 
                 const responseText = await response.text();
