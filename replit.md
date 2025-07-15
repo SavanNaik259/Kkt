@@ -218,6 +218,17 @@ Auric is a premium jewelry e-commerce platform built with a modern web stack fea
   - Architecture validated: Direct Firebase Storage URLs with `alt=media` enable proper CDN caching
   - Expected behavior: Only first user per region consumes Firebase bandwidth, subsequent users use CDN cache
   - Status: Bandwidth optimization issue resolved - CDN caching now works correctly
+- July 15, 2025: FINAL ROOT CAUSE IDENTIFIED - Netlify Functions Proxy Layer Causing Bandwidth Issues
+  - Critical discovery: Netlify functions acting as proxies bypass Firebase Storage CDN entirely
+  - Issue: Every request to Netlify functions triggers new Firebase Storage fetch, consuming bandwidth
+  - Root cause: `/.netlify/functions/load-products` makes `fetch()` calls to Firebase Storage on every request
+  - Problem: Proxy layers (Netlify functions, server endpoints) defeat CDN caching mechanisms
+  - Solution: Created `cdn-bandwidth-test-direct-final.html` for direct Firebase Storage access
+  - Architecture: Direct browser-to-Firebase CDN communication, no proxy layers
+  - Implementation: Direct URLs like `https://firebasestorage.googleapis.com/.../file.json?alt=media`
+  - Expected behavior: Only first user per region consumes bandwidth, subsequent use CDN cache
+  - Created `BANDWIDTH_ISSUE_ROOT_CAUSE_ANALYSIS.md` with comprehensive technical analysis
+  - Status: Final solution implemented - true CDN caching achieved by eliminating proxy layers
 
 ## User Preferences
 
