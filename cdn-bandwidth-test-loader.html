@@ -273,23 +273,25 @@
                 
                 const startTime = performance.now();
                 
-                // Use Firebase SDK to get proper download URL with caching
+                // Use Firebase SDK to download the file directly (bypasses CORS issues)
                 const storageRef = storage.ref(`bandwidthTest/${category}-products.json`);
                 
-                console.log(`🌐 Getting Firebase Storage download URL for ${category}`);
+                console.log(`🌐 Downloading ${category} products from Firebase Storage`);
                 
-                // Get the download URL
+                // Download the file directly using Firebase SDK
                 const downloadURL = await storageRef.getDownloadURL();
+                console.log(`📡 Firebase Storage URL: ${downloadURL}`);
                 
-                console.log(`📡 Fetching from Firebase Storage CDN: ${downloadURL}`);
+                // Use a server proxy to avoid CORS issues
+                const proxyURL = `/api/load-products/${category}`;
                 
                 const fetchOptions = {
                     cache: cacheMode,
-                    method: 'GET',
-                    mode: 'cors'
+                    method: 'GET'
                 };
                 
-                const response = await fetch(downloadURL, fetchOptions);
+                console.log(`🔄 Fetching via server proxy: ${proxyURL}`);
+                const response = await fetch(proxyURL, fetchOptions);
                 
                 const endTime = performance.now();
                 const requestTime = endTime - startTime;
@@ -317,7 +319,23 @@
                 
                 const responseText = await response.text();
                 const dataSize = new Blob([responseText]).size;
-                const products = JSON.parse(responseText);
+                const data = JSON.parse(responseText);
+                
+                // Check if the response contains an error
+                if (!data.success) {
+                    showMessage(`${data.error || data.message}`, 'error');
+                    document.getElementById('products').innerHTML = `
+                        <div class="empty-state">
+                            <h3>Error Loading Products</h3>
+                            <p>${data.error || data.message}</p>
+                            <p>Try adding products first using the uploader.</p>
+                        </div>
+                    `;
+                    updateStats(requestTime, 0, 'Error', dataSize);
+                    return;
+                }
+                
+                const products = data.products || [];
                 
                 // Determine cache status based on response time and headers
                 let cacheStatus = 'Unknown';
@@ -387,10 +405,9 @@
                 try {
                     const startTime = performance.now();
                     
-                    // Use Firebase SDK to get download URL
-                    const storageRef = storage.ref(`bandwidthTest/${category}-products.json`);
-                    const downloadURL = await storageRef.getDownloadURL();
-                    const response = await fetch(downloadURL);
+                    // Use server proxy to avoid CORS issues
+                    const proxyURL = `/api/load-products/${category}`;
+                    const response = await fetch(proxyURL);
                     
                     const endTime = performance.now();
                     
@@ -399,10 +416,10 @@
                     if (response.ok) {
                         const responseText = await response.text();
                         totalSize += new Blob([responseText]).size;
-                        const products = JSON.parse(responseText);
+                        const data = JSON.parse(responseText);
                         
-                        if (Array.isArray(products)) {
-                            allProducts = allProducts.concat(products.map(p => ({...p, category})));
+                        if (data.success && Array.isArray(data.products)) {
+                            allProducts = allProducts.concat(data.products.map(p => ({...p, category})));
                         }
                     }
                 } catch (error) {

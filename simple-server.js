@@ -218,7 +218,11 @@ app.get('/api/load-products/:category', async (req, res) => {
     console.log(`Loading ${category} products from Firebase Storage CDN...`);
 
     // Simple fetch from Firebase Storage - their CDN handles all caching automatically
-    const storageUrl = `https://firebasestorage.googleapis.com/v0/b/auric-a0c92.firebasestorage.app/o/productData%2F${category}-products.json?alt=media&token=c6a2eb63-56e3-4fc0-96ac-66773cf45f96`;
+    // Check if this is a bandwidth test category
+    const isBandwidthTest = category.startsWith('bandwidth-test-');
+    const storageUrl = isBandwidthTest 
+      ? `https://firebasestorage.googleapis.com/v0/b/auric-a0c92.firebasestorage.app/o/bandwidthTest%2F${category}-products.json?alt=media`
+      : `https://firebasestorage.googleapis.com/v0/b/auric-a0c92.firebasestorage.app/o/productData%2F${category}-products.json?alt=media&token=c6a2eb63-56e3-4fc0-96ac-66773cf45f96`;
 
     const response = await fetch(storageUrl);
 
