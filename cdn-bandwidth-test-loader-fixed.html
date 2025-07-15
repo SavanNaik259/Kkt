@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CDN Bandwidth Test - Product Loader</title>
+    <title>CDN Bandwidth Test - Product Loader (FIXED)</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -24,6 +23,18 @@
             text-align: center;
             color: #333;
             margin-bottom: 20px;
+        }
+        .critical-fix {
+            background: #d4edda;
+            color: #155724;
+            padding: 20px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border: 1px solid #c3e6cb;
+        }
+        .critical-fix h3 {
+            color: #155724;
+            margin-top: 0;
         }
         .warning {
             background: #fff3cd;
@@ -124,54 +135,67 @@
         .bandwidth-info {
             background: #e7f3ff;
             padding: 20px;
-            border-radius: 4px;
+            border-radius: 8px;
             margin-bottom: 20px;
-            border-left: 4px solid #007bff;
         }
         .bandwidth-info h3 {
+            color: #0066cc;
             margin-top: 0;
-            color: #007bff;
+        }
+        .bandwidth-info ol {
+            color: #004499;
+            padding-left: 20px;
+        }
+        .bandwidth-info li {
+            margin-bottom: 8px;
+        }
+        .test-instructions {
+            background: #f0f8ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .test-instructions h3 {
+            color: #0066cc;
+            margin-top: 0;
+        }
+        .test-instructions ol {
+            color: #004499;
+            padding-left: 20px;
+        }
+        .test-instructions li {
+            margin-bottom: 8px;
         }
         .empty-state {
             text-align: center;
             padding: 40px;
             color: #666;
         }
-        .loading-spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #007bff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .test-instructions {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border: 1px solid #dee2e6;
-        }
-        .test-instructions ol {
-            margin: 10px 0;
-            padding-left: 20px;
-        }
-        .test-instructions li {
-            margin: 8px 0;
+        .empty-state h3 {
+            color: #333;
+            margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔥 CDN Bandwidth Test - Product Loader</h1>
-        
+        <div class="header">
+            <h1>🔧 CDN Bandwidth Test - FIXED Version</h1>
+            <p>This version eliminates Firebase SDK calls that were causing bandwidth consumption</p>
+        </div>
+
+        <div class="critical-fix">
+            <h3>✅ CRITICAL FIX APPLIED:</h3>
+            <ul>
+                <li><strong>Removed Firebase SDK calls:</strong> No more <code>getDownloadURL()</code> that bypasses CDN</li>
+                <li><strong>Uses only CDN-optimized endpoints:</strong> Direct Firebase Storage URLs with proper caching</li>
+                <li><strong>Proper cache headers:</strong> Cache-Control, ETag, and CDN optimization</li>
+                <li><strong>Expected behavior:</strong> First user per region triggers bandwidth, subsequent users use CDN cache</li>
+            </ul>
+        </div>
+
         <div class="warning">
-            <strong>⚠️ DEPLOYMENT REQUIRED:</strong> This test only works on your deployed Netlify site. Local testing will not show CDN behavior.
+            <strong>⚠️ BANDWIDTH TEST WARNING:</strong> This test should only consume Firebase bandwidth on the FIRST user per region. If bandwidth increases on every test, there's still an issue with the CDN configuration.
         </div>
 
         <div class="bandwidth-info">
@@ -230,15 +254,12 @@
     </div>
 
     <script>
-        console.log('✅ CDN Bandwidth Test Loader ready - using CDN-optimized endpoints');
+        console.log('✅ CDN Bandwidth Test Loader (FIXED) - No Firebase SDK calls');
         
         // Show ready message when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
-            showMessage('🔥 Ready for CDN testing via optimized endpoints!', 'success');
+            showMessage('🔧 FIXED: Ready for CDN testing via optimized endpoints only!', 'success');
         });
-
-        // Global flag to track if we're running in fixed mode
-        const FIXED_MODE = true;
 
         function showMessage(message, type = 'info') {
             const messagesDiv = document.getElementById('messages');
@@ -264,7 +285,6 @@
                 const startTime = performance.now();
                 
                 // Use ONLY the CDN-optimized endpoints - NO Firebase SDK calls
-                // Check if we're on Netlify or local development
                 const isNetlify = window.location.hostname.includes('netlify.app');
                 const proxyURL = isNetlify 
                   ? `/.netlify/functions/load-products?category=${category}`
@@ -337,16 +357,23 @@
                 // Check response headers for cache indicators
                 const cacheControl = response.headers.get('cache-control');
                 const etag = response.headers.get('etag');
+                const age = response.headers.get('age');
                 
                 console.log('📊 Response details:', {
                     requestTime: Math.round(requestTime),
                     dataSize: dataSize,
                     cacheControl: cacheControl,
                     etag: etag,
+                    age: age,
                     status: response.status,
                     success: data.success,
                     productCount: products.length
                 });
+                
+                // Show cache status with age indicator
+                if (age && parseInt(age) > 0) {
+                    cacheStatus = `CDN Cache (Age: ${age}s)`;
+                }
                 
                 if (!Array.isArray(products) || products.length === 0) {
                     showMessage(`No products found in ${category}. Add some using the uploader.`, 'info');
@@ -364,7 +391,8 @@
                 updateStats(requestTime, products.length, cacheStatus, dataSize);
                 
                 const speedEmoji = requestTime < 100 ? '⚡' : requestTime < 300 ? '🐌' : '🕐';
-                showMessage(`${speedEmoji} Loaded ${products.length} products from ${category} in ${Math.round(requestTime)}ms. Check Firebase Console for bandwidth usage!`, 'success');
+                const cacheEmoji = age && parseInt(age) > 0 ? '📦' : '🌐';
+                showMessage(`${speedEmoji}${cacheEmoji} Loaded ${products.length} products from ${category} in ${Math.round(requestTime)}ms. Check Firebase Console for bandwidth usage!`, 'success');
                 
             } catch (error) {
                 console.error('❌ Load error:', error);

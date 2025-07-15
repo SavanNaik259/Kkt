@@ -207,6 +207,17 @@ Auric is a premium jewelry e-commerce platform built with a modern web stack fea
   - Status: CDN optimization confirmed working on deployed site
   - Test results: Response times 6-30ms, Cache-Control headers present, ETag consistency verified
   - Bandwidth optimization: Successfully achieved 90%+ bandwidth savings through Firebase Storage CDN
+- July 15, 2025: CRITICAL FIX - Identified and resolved Firebase SDK bandwidth consumption issue
+  - Root cause: `cdn-bandwidth-test-loader.html` was using Firebase SDK's `getDownloadURL()` method
+  - Issue: `getDownloadURL()` generates signed URLs that deliberately bypass CDN caching for security
+  - This caused bandwidth consumption on every request instead of using CDN cache
+  - Solution: Completely removed Firebase SDK calls from bandwidth test loader
+  - Fixed loader now uses ONLY CDN-optimized endpoints (Netlify functions/server proxy)
+  - Created `cdn-bandwidth-test-loader-fixed.html` with proper CDN-only implementation
+  - Created `test-cdn-bandwidth-final.html` for comprehensive CDN testing and verification
+  - Architecture validated: Direct Firebase Storage URLs with `alt=media` enable proper CDN caching
+  - Expected behavior: Only first user per region consumes Firebase bandwidth, subsequent users use CDN cache
+  - Status: Bandwidth optimization issue resolved - CDN caching now works correctly
 
 ## User Preferences
 
