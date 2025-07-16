@@ -422,10 +422,16 @@
                     },
                     async () => {
                         try {
-                            console.log('Upload completed, getting download URL...');
+                            console.log('Upload completed, generating image proxy URL...');
                             const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-                            console.log('Image uploaded successfully:', downloadURL);
-                            resolve(downloadURL);
+                            console.log('Image uploaded successfully to Firebase Storage:', downloadURL);
+                            
+                            // Generate image proxy URL instead of direct Firebase URL
+                            const imagePath = `productImages/${fileName}`;
+                            const proxyURL = `/.netlify/functions/image-proxy?path=${encodeURIComponent(imagePath)}`;
+                            console.log('Generated image proxy URL:', proxyURL);
+                            
+                            resolve(proxyURL);
                         } catch (error) {
                             console.error('Error getting download URL:', error);
                             reject(error);
