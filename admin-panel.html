@@ -662,6 +662,16 @@
                 `;
                 successMessage.style.display = 'block';
 
+                // Clear product cache to show fresh products immediately
+                try {
+                    if (window.BridalProductsLoader && window.BridalProductsLoader.clearCache) {
+                        window.BridalProductsLoader.clearCache();
+                        console.log('Product cache cleared after successful upload');
+                    }
+                } catch (cacheError) {
+                    console.warn('Error clearing product cache:', cacheError);
+                }
+
                 // Reset form
                 productForm.reset();
                 imagePreview.style.display = 'none';

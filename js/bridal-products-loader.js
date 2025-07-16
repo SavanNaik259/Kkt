@@ -46,6 +46,22 @@ const BridalProductsLoader = (function() {
     }
 
     /**
+     * Clear all caches - called when products are updated
+     */
+    function clearCache() {
+        console.log('Clearing bridal products cache...');
+        cachedProducts = null;
+        lastFetchTime = 0;
+        try {
+            localStorage.removeItem('bridalProducts');
+            localStorage.removeItem('bridalProductsTime');
+            localStorage.removeItem('bridalProductsETag');
+        } catch (e) {
+            console.warn('Error clearing localStorage cache:', e);
+        }
+    }
+
+    /**
      * Load bridal products EXCLUSIVELY from Firebase Cloud Storage
      */
     async function loadBridalProducts(forceRefresh = false) {
@@ -54,19 +70,21 @@ const BridalProductsLoader = (function() {
             return [];
         }
 
-        // Check memory cache first
+        // Check memory cache first (reduce cache duration to 5 minutes for faster updates)
         const now = Date.now();
-        if (!forceRefresh && cachedProducts && (now - lastFetchTime) < CACHE_DURATION) {
+        const SHORT_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes instead of 30
+        
+        if (!forceRefresh && cachedProducts && (now - lastFetchTime) < SHORT_CACHE_DURATION) {
             console.log('Using memory cached bridal products');
             return cachedProducts;
         }
 
-        // Check localStorage cache
+        // Check localStorage cache with shorter duration
         if (!forceRefresh) {
             try {
                 const stored = localStorage.getItem('bridalProducts');
                 const storedTime = localStorage.getItem('bridalProductsTime');
-                if (stored && storedTime && (now - parseInt(storedTime)) < CACHE_DURATION) {
+                if (stored && storedTime && (now - parseInt(storedTime)) < SHORT_CACHE_DURATION) {
                     console.log('Using localStorage cached bridal products');
                     cachedProducts = JSON.parse(stored);
                     lastFetchTime = parseInt(storedTime);

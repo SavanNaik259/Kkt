@@ -461,12 +461,16 @@
                 <div class="product-card">
                     <div class="product-image">
                         <img src="${product.image}" alt="${product.name}" 
+                             loading="lazy"
                              onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDMwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjZjBmMGYwIi8+Cjx0ZXh0IHg9IjE1MCIgeT0iMTAwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZSBOb3QgQXZhaWxhYmxlPC90ZXh0Pgo8L3N2Zz4='; this.style.opacity='0.5';">
                     </div>
                     <div class="product-info">
                         <div class="product-name">${product.name}</div>
                         <div class="product-price">₹${product.price.toLocaleString('en-IN')}</div>
                         <div class="product-description">${product.description}</div>
+                        <div class="product-meta" style="margin-top: 8px; font-size: 0.8em; color: #888;">
+                            ID: ${product.id} | Added: ${new Date(product.createdAt).toLocaleDateString()}
+                        </div>
                     </div>
                 </div>
             `).join('');
@@ -494,10 +498,46 @@
             loadInfoText.textContent = 'Ready to load products...';
         }
 
+        // Add auto-refresh functionality
+        function enableAutoRefresh() {
+            const refreshButton = document.createElement('button');
+            refreshButton.className = 'btn';
+            refreshButton.innerHTML = '<i class="fas fa-sync"></i> Auto-Refresh (5s)';
+            refreshButton.style.marginLeft = '10px';
+            
+            let refreshInterval;
+            let isAutoRefreshing = false;
+            
+            refreshButton.addEventListener('click', function() {
+                if (!isAutoRefreshing) {
+                    isAutoRefreshing = true;
+                    refreshButton.innerHTML = '<i class="fas fa-stop"></i> Stop Auto-Refresh';
+                    refreshButton.style.background = '#d32f2f';
+                    
+                    refreshInterval = setInterval(() => {
+                        if (!loadBtn.disabled) {
+                            console.log('🔄 Auto-refresh triggered');
+                            loadProducts();
+                        }
+                    }, 5000);
+                } else {
+                    isAutoRefreshing = false;
+                    refreshButton.innerHTML = '<i class="fas fa-sync"></i> Auto-Refresh (5s)';
+                    refreshButton.style.background = '';
+                    clearInterval(refreshInterval);
+                }
+            });
+            
+            document.querySelector('.test-section').appendChild(refreshButton);
+        }
+
         // Initial state
         console.log('🎯 Real Products Bandwidth Test Ready');
         console.log('📍 Environment:', window.location.hostname.includes('netlify') || window.location.hostname.includes('.app') ? 'Netlify (Deployed)' : 'Local Development');
         console.log('🔗 Endpoint:', getEndpoint());
+        
+        // Enable auto-refresh for testing
+        enableAutoRefresh();
     </script>
 </body>
 </html>
