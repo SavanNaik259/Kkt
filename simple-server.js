@@ -270,6 +270,72 @@ app.get('/api/load-products/:category', async (req, res) => {
 });
 
 /**
+ * Local image proxy endpoint for development
+ * Mimics the Netlify function behavior for local testing
+ */
+app.get('/.netlify/functions/image-proxy', async (req, res) => {
+  try {
+    const imagePath = req.query.path;
+    
+    if (!imagePath) {
+      return res.status(400).json({ 
+        error: 'Missing image path',
+        usage: '/.netlify/functions/image-proxy?path=productImages/image.jpg'
+      });
+    }
+
+    console.log('Image proxy request for:', imagePath);
+
+    // Check if Firebase Admin is initialized
+    if (!admin.apps.length) {
+      return res.status(500).json({ 
+        error: 'Firebase Storage not configured',
+        details: 'Firebase Admin SDK not initialized'
+      });
+    }
+
+    const bucket = admin.storage().bucket();
+    const file = bucket.file(imagePath);
+    
+    // Check if file exists
+    const [exists] = await file.exists();
+    if (!exists) {
+      console.log('Image not found:', imagePath);
+      return res.status(404).json({ 
+        error: 'Image not found',
+        path: imagePath
+      });
+    }
+
+    // Download file content
+    const [fileBuffer] = await file.download();
+    const [metadata] = await file.getMetadata();
+    
+    // Determine content type
+    const contentType = metadata.contentType || 'image/jpeg';
+    
+    // Set cache headers
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=2592000'); // 30 days
+    res.setHeader('Content-Length', fileBuffer.length);
+    
+    if (metadata.etag) {
+      res.setHeader('ETag', metadata.etag);
+    }
+    
+    console.log('Serving image:', imagePath, `(${fileBuffer.length} bytes)`);
+    res.send(fileBuffer);
+
+  } catch (error) {
+    console.error('Image proxy error:', error);
+    res.status(500).json({
+      error: 'Failed to fetch image',
+      details: error.message
+    });
+  }
+});
+
+/**
  * Health check endpoint
  * Used to verify server is running properly
  */
