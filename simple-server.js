@@ -209,8 +209,8 @@ app.post('/api/verify-razorpay-payment', async (req, res) => {
 });
 
 /**
- * Load products from Firebase Cloud Storage
- * Simple proxy to bypass CORS issues - Firebase Storage CDN handles all caching
+ * Load products from Firebase Cloud Storage with ETag optimization
+ * Implements must-revalidate caching for immediate updates with long-term caching
  */
 app.get('/api/load-products/:category', async (req, res) => {
   try {
@@ -241,20 +241,39 @@ app.get('/api/load-products/:category', async (req, res) => {
     }
 
     const products = await response.json();
+    const content = JSON.stringify(products);
+    
+    // Generate content-based ETag for optimal caching
+    const crypto = require('crypto');
+    const contentHash = crypto.createHash('md5').update(content).digest('hex');
+    const serverETag = `"products-${category}-${contentHash.substring(0, 8)}"`;
+    
+    console.log(`Generated ETag for ${category}:`, serverETag);
+    
+    // Check if client has current version (ETag validation)
+    const clientETag = req.headers['if-none-match'];
+    if (clientETag && clientETag === serverETag) {
+      console.log(`ETag match for ${category} - returning 304 Not Modified (zero bandwidth)`);
+      res.status(304).end();
+      return;
+    }
+    
+    console.log(`ETag mismatch or no client ETag - returning fresh data`);
+    console.log(`Client ETag: ${clientETag}, Server ETag: ${serverETag}`);
     console.log(`Successfully loaded ${products.length} ${category} products`);
 
-    // Pass through Firebase Storage cache headers
-    const cacheControl = response.headers.get('cache-control');
-    const etag = response.headers.get('etag');
-
-    if (cacheControl) res.setHeader('Cache-Control', cacheControl);
-    if (etag) res.setHeader('ETag', etag);
+    // Set optimal caching headers: 1 year cache with must-revalidate
+    res.setHeader('Cache-Control', 'public, max-age=31536000, must-revalidate');
+    res.setHeader('ETag', serverETag);
+    res.setHeader('Vary', 'Accept-Encoding');
 
     const responseData = {
       success: true,
       products: products,
       count: products.length,
-      category: category
+      category: category,
+      etag: serverETag,
+      cached: false
     };
 
     res.json(responseData);
