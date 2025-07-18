@@ -9,7 +9,7 @@ const BridalProductsLoader = (function() {
     let isInitialized = false;
     let cachedProducts = null;
     let lastFetchTime = 0;
-    const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes cache for better optimization
+    const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache for faster updates
     const MAX_PRODUCTS_TO_FETCH = 6; // Limit products fetched
 
     /**
@@ -70,11 +70,10 @@ const BridalProductsLoader = (function() {
             return [];
         }
 
-        // Check memory cache first (reduce cache duration to 5 minutes for faster updates)
+        // Check memory cache first
         const now = Date.now();
-        const SHORT_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes instead of 30
         
-        if (!forceRefresh && cachedProducts && (now - lastFetchTime) < SHORT_CACHE_DURATION) {
+        if (!forceRefresh && cachedProducts && (now - lastFetchTime) < CACHE_DURATION) {
             console.log('Using memory cached bridal products');
             return cachedProducts;
         }
