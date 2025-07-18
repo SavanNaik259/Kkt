@@ -394,50 +394,51 @@
 
                 if (response.status === 304) {
                     console.log('304 Not Modified - using cached products');
-                    
+
                     // Try to load products from localStorage since server said they're unchanged
                     const cachedProducts = localStorage.getItem('bridalProducts');
-                    const cachedTime = localStorage.getItem('bridalProductsTime');
                     
-                    if (cachedProducts && cachedTime) {
-                        try {
-                            const products = JSON.parse(cachedProducts);
-                            const cacheAge = Date.now() - parseInt(cachedTime);
-                            
-                            // Validate that we actually have products and cache is not too old
-                            if (Array.isArray(products) && products.length > 0 && cacheAge < 3600000) { // 1 hour max cache age
-                                console.log('✅ 304 Load: Using cached products:', products.length, 'Cache age:', Math.round(cacheAge/1000), 'seconds');
-                                
-                                // Display results and products
-                                displayResults(products, loadTimeMs, response);
-                                displayProducts(products);
-                                
-                                lastLoadTime = loadTimeMs;
-                                return;
-                            } else {
-                                console.warn('304: Cached products array is empty, invalid, or too old:', {
-                                    isArray: Array.isArray(products),
-                                    length: products?.length,
-                                    cacheAge: Math.round(cacheAge/1000)
-                                });
-                            }
-                        } catch (error) {
+
+                    if (cachedProducts) {
+                            try {
+                                const products = JSON.parse(cachedProducts);
+
+                                // Smart cache validation: only check data structure, not age
+                                if (Array.isArray(products) && products.length > 0) {
+                                    const cacheTime = localStorage.getItem('bridalProductsTime');
+                                    const cacheAge = cacheTime ? (Date.now() - parseInt(cacheTime)) : 0;
+
+                                    console.log('✅ 304 Load: Using cached products:', products.length, 'Cache age:', Math.round(cacheAge/1000), 'seconds');
+
+                                    // Display results and products
+                                    displayResults(products, loadTimeMs, response);
+                                    displayProducts(products);
+
+                                    lastLoadTime = loadTimeMs;
+                                    return;
+                                } else {
+                                    console.warn('304: Cached products array is invalid (not array or empty):', {
+                                        isArray: Array.isArray(products),
+                                        length: products?.length
+                                    });
+                                }
+                    } catch (error) {
                             console.error('Error parsing cached products:', error);
                         }
                     } else {
                         console.warn('304: No cached products or timestamp found');
                     }
-                    
+
                     // If we reach here, 304 was returned but cache is invalid
                     // Clear the bad cache and force a fresh load
                     console.log('🧹 Clearing invalid cache and forcing fresh load...');
-                    
+
                     try {
                         // Clear the corrupted cache
                         localStorage.removeItem('bridalProducts');
                         localStorage.removeItem('bridalProductsTime');
                         localStorage.removeItem('bridalProductsETag');
-                        
+
                         // Force a fresh load by making a new request without ETag
                         const freshResponse = await fetch(fullEndpoint + `?fresh=${Date.now()}`, {
                             method: 'GET',
@@ -448,25 +449,25 @@
                             },
                             cache: 'no-store'
                         });
-                        
+
                         if (freshResponse.ok) {
                             const freshData = await freshResponse.json();
                             if (freshData.success && freshData.products && freshData.products.length > 0) {
                                 console.log('✅ Fresh load after 304 cache corruption:', freshData.products.length);
-                                
+
                                 // Cache the fresh data properly
                                 localStorage.setItem('bridalProducts', JSON.stringify(freshData.products));
                                 localStorage.setItem('bridalProductsTime', Date.now().toString());
-                                
+
                                 // Store new ETag if present
                                 const newETag = freshResponse.headers.get('ETag') || freshResponse.headers.get('etag');
                                 if (newETag) {
                                     localStorage.setItem('bridalProductsETag', newETag);
                                 }
-                                
+
                                 displayResults(freshData.products, loadTimeMs, freshResponse);
                                 displayProducts(freshData.products);
-                                
+
                                 lastLoadTime = loadTimeMs;
                                 return;
                             }
@@ -474,7 +475,7 @@
                     } catch (freshError) {
                         console.error('Fresh load after 304 failed:', freshError);
                     }
-                    
+
                     // Final fallback - show error with retry options
                     productsContainer.innerHTML = `
                         <div class="error">
@@ -511,7 +512,7 @@
                 try {
                     localStorage.setItem('bridalProducts', JSON.stringify(products));
                     localStorage.setItem('bridalProductsTime', Date.now().toString());
-                    
+
                     // Store ETag if present
                     const responseETag = response.headers.get('ETag') || response.headers.get('etag');
                     if (responseETag) {
@@ -681,13 +682,13 @@
                 localStorage.removeItem('bridalProductsTime');
                 localStorage.removeItem('bridalProductsETag');
                 console.log('🧹 Cache cleared successfully');
-                
+
                 // Show feedback
                 const infoDiv = document.createElement('div');
                 infoDiv.style.cssText = 'background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 10px; margin: 10px 0; border-radius: 5px;';
                 infoDiv.innerHTML = '<strong>Cache Cleared!</strong> Next load will fetch fresh data.';
                 document.querySelector('.controls').appendChild(infoDiv);
-                
+
                 setTimeout(() => infoDiv.remove(), 3000);
             } catch (error) {
                 console.error('Failed to clear cache:', error);
