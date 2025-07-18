@@ -264,7 +264,7 @@ app.get('/api/load-products/:category', async (req, res) => {
     // Set proper cache headers including Netlify CDN
     res.set({
       'ETag': serverETag,
-      'Cache-Control': 'public, max-age=300, must-revalidate',
+      'Cache-Control': 'public, max-age=2592000, must-revalidate', // 1 month browser cache
       'Netlify-CDN-Cache-Control': 'public, max-age=31536000, must-revalidate', // 1 year CDN cache
       'Last-Modified': new Date().toUTCString()
     });
