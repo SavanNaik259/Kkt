@@ -391,11 +391,31 @@
 
                 if (response.status === 304) {
                     console.log('304 Not Modified - using cached products');
+                    
+                    // Load products from localStorage since server said they're unchanged
+                    const cachedProducts = localStorage.getItem('bridalProducts');
+                    if (cachedProducts) {
+                        try {
+                            const products = JSON.parse(cachedProducts);
+                            console.log('✅ 304 Load: Using cached products:', products.length);
+                            
+                            // Display results and products
+                            displayResults(products, loadTimeMs, response);
+                            displayProducts(products);
+                            
+                            lastLoadTime = loadTimeMs;
+                            return;
+                        } catch (error) {
+                            console.error('Error parsing cached products:', error);
+                        }
+                    }
+                    
+                    // Fallback if no cached products found
                     productsContainer.innerHTML = `
-                        <div class="success">
-                            <h3>✅ Products Loaded from Cache</h3>
-                            <p>Server returned 304 Not Modified - your products are already cached and up to date.</p>
-                            <p>This is optimal behavior showing CDN caching is working correctly!</p>
+                        <div class="error">
+                            <h3>❌ 304 Not Modified but No Cached Products</h3>
+                            <p>Server returned 304 Not Modified but no cached products found locally.</p>
+                            <p>This might indicate a cache inconsistency. Try clearing cache and reload.</p>
                         </div>
                     `;
                     return;
