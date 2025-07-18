@@ -222,13 +222,22 @@
             font-size: 0.9em;
         }
 
-        .error-message {
-            background: #ffebee;
-            border: 1px solid #ffcdd2;
-            border-radius: 8px;
-            padding: 15px;
-            color: #c62828;
-            margin-bottom: 20px;
+        .error {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #800;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        .success {
+            background: #efe;
+            border: 1px solid #cfc;
+            color: #080;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
         }
     </style>
 </head>
@@ -304,7 +313,7 @@
 
     <!-- Include cache optimizer -->
     <script src="js/cache-optimizer.js"></script>
-    
+
     <script>
         let loadCount = 0;
         let lastLoadTime = null;
@@ -355,13 +364,13 @@
                 // Add cache busting for every 3rd request to test fresh data
                 const cacheBust = loadCount % 3 === 0 ? `?cacheBust=${Date.now()}` : '';
                 const fullEndpoint = endpoint + cacheBust;
-                
+
                 // Get stored ETag for conditional requests
                 const storedETag = localStorage.getItem('bridalProductsETag');
                 const headers = {
                     'Content-Type': 'application/json'
                 };
-                
+
                 // Add ETag for cache validation (except when cache busting)
                 if (storedETag && !cacheBust) {
                     headers['If-None-Match'] = storedETag;
@@ -379,6 +388,18 @@
 
                 const endTime = performance.now();
                 const loadTimeMs = Math.round(endTime - startTime);
+
+                if (response.status === 304) {
+                    console.log('304 Not Modified - using cached products');
+                    productsContainer.innerHTML = `
+                        <div class="success">
+                            <h3>✅ Products Loaded from Cache</h3>
+                            <p>Server returned 304 Not Modified - your products are already cached and up to date.</p>
+                            <p>This is optimal behavior showing CDN caching is working correctly!</p>
+                        </div>
+                    `;
+                    return;
+                }
 
                 if (!response.ok) {
                     throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
@@ -466,7 +487,7 @@
 
             // Update info text
             let infoText = `Load #${loadCount} completed in ${loadTimeMs}ms with ${products.length} products. `;
-            
+
             if (responseStatus === 304) {
                 infoText += 'Server returned 304 Not Modified - content unchanged, minimal bandwidth used.';
             } else if (loadCount === 1) {
@@ -536,7 +557,7 @@
             loadResults.style.display = 'none';
             errorContainer.style.display = 'none';
             productsContainer.innerHTML = '';
-            
+
             // Reset stats
             loadTime.textContent = '-';
             productCount.textContent = '-';
@@ -551,16 +572,16 @@
             refreshButton.className = 'btn';
             refreshButton.innerHTML = '<i class="fas fa-sync"></i> Auto-Refresh (5s)';
             refreshButton.style.marginLeft = '10px';
-            
+
             let refreshInterval;
             let isAutoRefreshing = false;
-            
+
             refreshButton.addEventListener('click', function() {
                 if (!isAutoRefreshing) {
                     isAutoRefreshing = true;
                     refreshButton.innerHTML = '<i class="fas fa-stop"></i> Stop Auto-Refresh';
                     refreshButton.style.background = '#d32f2f';
-                    
+
                     refreshInterval = setInterval(() => {
                         if (!loadBtn.disabled) {
                             console.log('🔄 Auto-refresh triggered');
@@ -574,7 +595,7 @@
                     clearInterval(refreshInterval);
                 }
             });
-            
+
             document.querySelector('.test-section').appendChild(refreshButton);
         }
 
@@ -582,7 +603,7 @@
         console.log('🎯 Real Products Bandwidth Test Ready');
         console.log('📍 Environment:', window.location.hostname.includes('netlify') || window.location.hostname.includes('.app') ? 'Netlify (Deployed)' : 'Local Development');
         console.log('🔗 Endpoint:', getEndpoint());
-        
+
         // Enable auto-refresh for testing
         enableAutoRefresh();
     </script>
