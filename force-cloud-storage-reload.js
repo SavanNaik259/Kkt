@@ -4,12 +4,11 @@
 (function() {
     console.log('Force reloading products from Cloud Storage...');
       
-    // Clear localStorage cache 
-
-    
+    // Clear localStorage cache completely
     localStorage.removeItem('bridalProducts');
     localStorage.removeItem('bridalProductsTime');
-    console.log('Cleared localStorage cache');
+    localStorage.removeItem('bridalProductsETag');
+    console.log('Cleared localStorage cache including ETag');
     
     // Clear any memory cache if BridalProductsLoader exists
     if (typeof BridalProductsLoader !== 'undefined' && BridalProductsLoader.clearCache) {

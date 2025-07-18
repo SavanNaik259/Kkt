@@ -9,7 +9,9 @@ const BridalProductsLoader = (function() {
     let isInitialized = false;
     let cachedProducts = null;
     let lastFetchTime = 0;
-    const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache for faster updates
+    let cachedETag = null;
+    const CACHE_DURATION = 30 * 1000; // 30 seconds cache for immediate updates
+    const SHORT_CACHE_DURATION = 10 * 1000; // 10 seconds for localStorage
     const MAX_PRODUCTS_TO_FETCH = 6; // Limit products fetched
 
     /**
@@ -78,14 +80,17 @@ const BridalProductsLoader = (function() {
             return cachedProducts;
         }
 
-        // Check localStorage cache with shorter duration
+        // Check localStorage cache with ETag validation
         if (!forceRefresh) {
             try {
                 const stored = localStorage.getItem('bridalProducts');
                 const storedTime = localStorage.getItem('bridalProductsTime');
+                const storedETag = localStorage.getItem('bridalProductsETag');
+                
                 if (stored && storedTime && (now - parseInt(storedTime)) < SHORT_CACHE_DURATION) {
-                    console.log('Using localStorage cached bridal products');
+                    console.log('Using localStorage cached bridal products (ETag:', storedETag?.substring(0, 8) + ')');
                     cachedProducts = JSON.parse(stored);
+                    cachedETag = storedETag;
                     lastFetchTime = parseInt(storedTime);
                     return cachedProducts;
                 }
@@ -164,9 +169,11 @@ const BridalProductsLoader = (function() {
                 }
                 
                 // Store ETag for future requests
-                const responseETag = response.headers.get('ETag');
+                const responseETag = response.headers.get('ETag') || response.headers.get('etag');
                 if (responseETag) {
                     localStorage.setItem('bridalProductsETag', responseETag);
+                    cachedETag = responseETag;
+                    console.log('Stored new ETag:', responseETag.substring(0, 12) + '...');
                 }
                 
                 const data = await response.json();
@@ -213,6 +220,10 @@ const BridalProductsLoader = (function() {
             try {
                 localStorage.setItem('bridalProducts', JSON.stringify(products));
                 localStorage.setItem('bridalProductsTime', now.toString());
+                if (cachedETag) {
+                    localStorage.setItem('bridalProductsETag', cachedETag);
+                }
+                console.log('Cached', products.length, 'products with ETag:', cachedETag?.substring(0, 8) + '...');
             } catch (e) {
                 console.warn('Error saving to localStorage cache:', e);
             }
@@ -376,15 +387,19 @@ const BridalProductsLoader = (function() {
      * Clear cached products (useful after adding/editing products)
      */
     function clearCache() {
+        console.log('Clearing all bridal products cache...');
         cachedProducts = null;
         lastFetchTime = 0;
+        cachedETag = null;
         try {
             localStorage.removeItem('bridalProducts');
             localStorage.removeItem('bridalProductsTime');
+            localStorage.removeItem('bridalProductsETag');
+            console.log('localStorage cache cleared');
         } catch (e) {
             console.warn('Error clearing localStorage cache:', e);
         }
-        console.log('Bridal products cache cleared');
+        console.log('All bridal products cache cleared');
     }
 
     // Public API

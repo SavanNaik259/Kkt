@@ -242,14 +242,14 @@ app.get('/api/load-products/:category', async (req, res) => {
 
     const products = await response.json();
     const content = JSON.stringify(products);
-    
+
     // Generate content-based ETag for optimal caching
     const crypto = require('crypto');
     const contentHash = crypto.createHash('md5').update(content).digest('hex');
     const serverETag = `"products-${category}-${contentHash.substring(0, 8)}"`;
-    
+
     console.log(`Generated ETag for ${category}:`, serverETag);
-    
+
     // Check if client has current version (ETag validation)
     const clientETag = req.headers['if-none-match'];
     if (clientETag && clientETag === serverETag) {
@@ -257,26 +257,26 @@ app.get('/api/load-products/:category', async (req, res) => {
       res.status(304).end();
       return;
     }
-    
+
     console.log(`ETag mismatch or no client ETag - returning fresh data`);
-    console.log(`Client ETag: ${clientETag}, Server ETag: ${serverETag}`);
     console.log(`Successfully loaded ${products.length} ${category} products`);
 
-    // Set optimal caching headers: 1 year cache with must-revalidate
-    res.setHeader('Cache-Control', 'public, max-age=31536000, must-revalidate');
-    res.setHeader('ETag', serverETag);
-    res.setHeader('Vary', 'Accept-Encoding');
+    // Set proper cache headers
+    res.set({
+      'ETag': serverETag,
+      'Cache-Control': 'public, max-age=300, must-revalidate',
+      'Last-Modified': new Date().toUTCString()
+    });
 
-    const responseData = {
+    res.json({
       success: true,
       products: products,
       count: products.length,
       category: category,
+      cached: false,
       etag: serverETag,
-      cached: false
-    };
-
-    res.json(responseData);
+      message: `Loaded ${products.length} ${category} products from Firebase Storage`
+    });
 
   } catch (error) {
     console.error('Error loading products:', error);
@@ -295,7 +295,7 @@ app.get('/api/load-products/:category', async (req, res) => {
 app.get('/.netlify/functions/image-proxy', async (req, res) => {
   try {
     const imagePath = req.query.path;
-    
+
     if (!imagePath) {
       return res.status(400).json({ 
         error: 'Missing image path',
@@ -315,7 +315,7 @@ app.get('/.netlify/functions/image-proxy', async (req, res) => {
 
     const bucket = admin.storage().bucket();
     const file = bucket.file(imagePath);
-    
+
     // Check if file exists
     const [exists] = await file.exists();
     if (!exists) {
@@ -329,19 +329,19 @@ app.get('/.netlify/functions/image-proxy', async (req, res) => {
     // Download file content
     const [fileBuffer] = await file.download();
     const [metadata] = await file.getMetadata();
-    
+
     // Determine content type
     const contentType = metadata.contentType || 'image/jpeg';
-    
+
     // Set cache headers
     res.setHeader('Content-Type', contentType);
     res.setHeader('Cache-Control', 'public, max-age=2592000'); // 30 days
     res.setHeader('Content-Length', fileBuffer.length);
-    
+
     if (metadata.etag) {
       res.setHeader('ETag', metadata.etag);
     }
-    
+
     console.log('Serving image:', imagePath, `(${fileBuffer.length} bytes)`);
     res.send(fileBuffer);
 
@@ -382,12 +382,12 @@ app.get('/api/test-firebase-access', async (req, res) => {
   try {
     // Try to access Firebase Storage directly
     const testUrl = 'https://firebasestorage.googleapis.com/v0/b/auric-a0c92.firebasestorage.app/o/bandwidthTest%2Fbandwidth-test-1-products.json?alt=media';
-    
+
     const response = await fetch(testUrl);
-    
+
     if (response.ok) {
       const data = await response.json();
-      
+
       res.json({
         success: true,
         message: `Successfully accessed Firebase Storage - found ${data.length} products`,

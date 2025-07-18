@@ -40,7 +40,7 @@ exports.handler = async (event, context) => {
   try {
     // Get category from query parameters
     const category = event.queryStringParameters?.category;
-    
+
     if (!category) {
       return {
         statusCode: 400,
@@ -67,7 +67,7 @@ exports.handler = async (event, context) => {
 
     // Use fetch to get the file from Firebase Storage CDN
     const response = await fetch(storageUrl);
-    
+
     if (!response.ok) {
       if (response.status === 404) {
         console.log(`No ${category} products file found in Firebase Storage`);
@@ -85,11 +85,11 @@ exports.handler = async (event, context) => {
     }
 
     const products = await response.json();
-    
+
     // Get cache headers from Firebase Storage response to pass through
     const cacheControl = response.headers.get('cache-control') || response.headers.get('Cache-Control');
     const etag = response.headers.get('etag') || response.headers.get('ETag');
-    
+
     console.log(`Cache-Control: ${cacheControl}, ETag: ${etag}`);
 
     console.log(`Successfully loaded ${products.length} ${category} products from Firebase Storage CDN`);
@@ -98,7 +98,7 @@ exports.handler = async (event, context) => {
     const responseHeaders = {
       ...headers
     };
-    
+
     if (cacheControl) responseHeaders['Cache-Control'] = cacheControl;
     if (etag) responseHeaders['ETag'] = etag;
 

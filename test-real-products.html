@@ -352,12 +352,29 @@
                 const endpoint = getEndpoint();
                 console.log('Using endpoint:', endpoint);
 
-                const response = await fetch(endpoint, {
+                // Add cache busting for every 3rd request to test fresh data
+                const cacheBust = loadCount % 3 === 0 ? `?cacheBust=${Date.now()}` : '';
+                const fullEndpoint = endpoint + cacheBust;
+                
+                // Get stored ETag for conditional requests
+                const storedETag = localStorage.getItem('bridalProductsETag');
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                
+                // Add ETag for cache validation (except when cache busting)
+                if (storedETag && !cacheBust) {
+                    headers['If-None-Match'] = storedETag;
+                    console.log('Sending If-None-Match:', storedETag.substring(0, 12) + '...');
+                }
+
+                console.log('Full endpoint:', fullEndpoint);
+                console.log('Request headers:', headers);
+
+                const response = await fetch(fullEndpoint, {
                     method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    cache: 'default' // Allow browser caching
+                    headers: headers,
+                    cache: cacheBust ? 'no-store' : 'default'
                 });
 
                 const endTime = performance.now();
@@ -402,17 +419,40 @@
             const cacheControl = response.headers.get('cache-control') || response.headers.get('Cache-Control');
             const age = response.headers.get('age') || response.headers.get('Age') || '0';
             const etag = response.headers.get('etag') || response.headers.get('ETag');
+            const responseStatus = response.status;
+
+            console.log('Response analysis:', {
+                status: responseStatus,
+                cacheControl,
+                age,
+                etag: etag?.substring(0, 12) + '...',
+                loadCount
+            });
+
+            // Store new ETag if received
+            if (etag) {
+                localStorage.setItem('bridalProductsETag', etag);
+                console.log('Stored new ETag:', etag.substring(0, 12) + '...');
+            }
 
             // Determine cache status
             let cacheStatusText = 'Unknown';
             let bandwidthImpactText = 'Unknown';
 
-            if (age && parseInt(age) > 0) {
+            if (responseStatus === 304) {
+                cacheStatusText = 'Not Modified (304)';
+                bandwidthImpactText = 'MINIMAL';
+                loadInfo.className = 'load-info';
+            } else if (age && parseInt(age) > 0) {
                 cacheStatusText = 'CDN Cache Hit';
-                bandwidthImpactText = 'NONE';
+                bandwidthImpactText = 'LOW';
                 loadInfo.className = 'load-info';
             } else if (loadCount === 1) {
                 cacheStatusText = 'First Load';
+                bandwidthImpactText = 'HIGH';
+                loadInfo.className = 'load-info';
+            } else if (loadCount % 3 === 0) {
+                cacheStatusText = 'Cache Busted';
                 bandwidthImpactText = 'HIGH';
                 loadInfo.className = 'load-info';
             } else {
@@ -427,19 +467,23 @@
             // Update info text
             let infoText = `Load #${loadCount} completed in ${loadTimeMs}ms with ${products.length} products. `;
             
-            if (loadCount === 1) {
-                infoText += 'This is your first load - it should consume Firebase bandwidth.';
-            } else if (bandwidthImpactText === 'NONE') {
-                infoText += 'This used CDN cache - no additional bandwidth consumed!';
+            if (responseStatus === 304) {
+                infoText += 'Server returned 304 Not Modified - content unchanged, minimal bandwidth used.';
+            } else if (loadCount === 1) {
+                infoText += 'This is your first load - consuming Firebase bandwidth for fresh data.';
+            } else if (bandwidthImpactText === 'LOW') {
+                infoText += 'CDN cache hit - reduced bandwidth usage.';
+            } else if (loadCount % 3 === 0) {
+                infoText += 'Cache busted for testing - fetching fresh data.';
             } else {
-                infoText += 'Check Firebase Console for bandwidth usage.';
+                infoText += 'Fresh load - check Firebase Console for bandwidth usage.';
             }
 
             if (cacheControl) {
-                infoText += ` Cache-Control: ${cacheControl}`;
+                infoText += ` | Cache-Control: ${cacheControl}`;
             }
             if (etag) {
-                infoText += ` | ETag: ${etag.substring(0, 20)}...`;
+                infoText += ` | ETag: ${etag.substring(0, 16)}...`;
             }
 
             loadInfoText.textContent = infoText;

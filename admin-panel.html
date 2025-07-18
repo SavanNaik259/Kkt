@@ -662,12 +662,34 @@
                 `;
                 successMessage.style.display = 'block';
 
-                // Clear product cache to show fresh products immediately
+                // Clear ALL caches and force fresh reload
                 try {
+                    // Clear localStorage cache
+                    localStorage.removeItem('bridalProducts');
+                    localStorage.removeItem('bridalProductsTime');
+                    localStorage.removeItem('bridalProductsETag');
+                    
+                    // Clear BridalProductsLoader cache if available
                     if (window.BridalProductsLoader && window.BridalProductsLoader.clearCache) {
                         window.BridalProductsLoader.clearCache();
-                        console.log('Product cache cleared after successful upload');
                     }
+                    
+                    // Force cache busting by adding timestamp
+                    const timestamp = Date.now();
+                    fetch(`/api/load-products/bridal?cacheBust=${timestamp}`, {
+                        method: 'GET',
+                        cache: 'no-store',
+                        headers: {
+                            'Cache-Control': 'no-cache, no-store, must-revalidate',
+                            'Pragma': 'no-cache'
+                        }
+                    }).then(() => {
+                        console.log('Cache invalidated successfully after product upload');
+                    }).catch(err => {
+                        console.warn('Error invalidating cache:', err);
+                    });
+                    
+                    console.log('All product caches cleared after successful upload');
                 } catch (cacheError) {
                     console.warn('Error clearing product cache:', cacheError);
                 }
