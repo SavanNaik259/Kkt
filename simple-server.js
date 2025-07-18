@@ -261,10 +261,11 @@ app.get('/api/load-products/:category', async (req, res) => {
     console.log(`ETag mismatch or no client ETag - returning fresh data`);
     console.log(`Successfully loaded ${products.length} ${category} products`);
 
-    // Set proper cache headers
+    // Set proper cache headers including Netlify CDN
     res.set({
       'ETag': serverETag,
       'Cache-Control': 'public, max-age=300, must-revalidate',
+      'Netlify-CDN-Cache-Control': 'public, max-age=31536000, must-revalidate', // 1 year CDN cache
       'Last-Modified': new Date().toUTCString()
     });
 
