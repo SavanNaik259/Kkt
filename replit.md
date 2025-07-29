@@ -171,6 +171,12 @@ Auric is a premium jewelry e-commerce platform built with a modern web stack fea
   - New products should now appear immediately after adding through admin panel without manual cache clearing
   - Admin panel now always loads the most recent product list before adding new products, preventing data loss
   - Admin panel now correctly loads existing products before adding new ones on both local and deployed sites
+  - **WISHLIST FUNCTIONALITY FIXED**: Resolved heart button click issue on dynamically generated bridal products
+  - Added proper event listeners and product data attributes to dynamically generated product cards
+  - Enhanced bridal product HTML generation to include all necessary wishlist data (ID, name, price, image)
+  - Implemented dedicated wishlist click handler that properly integrates with existing WishlistManager
+  - Wishlist now successfully adds actual bridal products (with user-entered names like "Dd", "28", "Cc", etc.)
+  - Fixed event listener setup for dynamically loaded content - runs after each product load
 - July 13, 2025: Confirmed Firebase Storage CDN caching works perfectly for bandwidth optimization
   - Issue: Misunderstanding about Firebase Storage CDN behavior
   - Solution: Simplified server to be simple proxy - Firebase Storage CDN handles all caching automatically
