@@ -335,7 +335,9 @@ const BridalProductsLoader = (function() {
                 <a href="#" style="text-decoration: none; color: inherit;">
                     <div class="arrival-image">
                         <img src="${product.image}" alt="${product.name}" loading="lazy">
-                        <button class="add-to-wishlist"><i class="far fa-heart"></i></button>
+                        <button class="add-to-wishlist" data-product-id="${product.id}" data-product-name="${product.name}" data-product-price="${product.price}" data-product-image="${product.image}">
+                            <i class="far fa-heart"></i>
+                        </button>
                     </div>
                     <div class="arrival-details">
                         <h3 class="arrival-title">${product.name}</h3>
@@ -346,6 +348,67 @@ const BridalProductsLoader = (function() {
                 </a>
             </div>
         `;
+    }
+
+    /**
+     * Set up event listeners for wishlist buttons in dynamically generated content
+     */
+    function setupWishlistEventListeners() {
+        console.log('Setting up wishlist event listeners for bridal products...');
+        
+        // Find all wishlist buttons in the bridal section
+        const bridalSection = document.querySelector('.bridal-edit');
+        if (!bridalSection) {
+            console.warn('Bridal section not found for wishlist setup');
+            return;
+        }
+        
+        const wishlistButtons = bridalSection.querySelectorAll('.add-to-wishlist');
+        console.log('Found', wishlistButtons.length, 'wishlist buttons in bridal section');
+        
+        wishlistButtons.forEach(button => {
+            // Remove any existing listeners to prevent duplicates
+            button.removeEventListener('click', handleWishlistButtonClick);
+            
+            // Add new listener
+            button.addEventListener('click', handleWishlistButtonClick);
+            console.log('Added wishlist listener to button for product:', button.dataset.productId);
+        });
+    }
+
+    /**
+     * Handle wishlist button clicks for bridal products
+     */
+    function handleWishlistButtonClick(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        console.log('Bridal product wishlist button clicked');
+        
+        const button = event.target.closest('.add-to-wishlist');
+        if (!button) {
+            console.error('Wishlist button not found');
+            return;
+        }
+        
+        // Get product data from button attributes
+        const productData = {
+            id: button.dataset.productId,
+            name: button.dataset.productName,
+            price: parseFloat(button.dataset.productPrice),
+            image: button.dataset.productImage
+        };
+        
+        console.log('Adding product to wishlist:', productData);
+        
+        // Call the global wishlist manager if available
+        if (typeof WishlistManager !== 'undefined' && WishlistManager.addToWishlist) {
+            WishlistManager.addToWishlist(productData);
+        } else {
+            console.error('WishlistManager not available');
+            // Fallback: show a simple message
+            alert(`${productData.name} added to wishlist!`);
+        }
     }
 
     /**
@@ -428,7 +491,10 @@ const BridalProductsLoader = (function() {
                 `;
             }
 
-            // Reinitialize any event listeners if needed
+            // Reinitialize event listeners for dynamically generated product cards
+            setupWishlistEventListeners();
+            
+            // Reinitialize any other event listeners if needed
             if (window.reinitializeProductEvents) {
                 window.reinitializeProductEvents();
             }
