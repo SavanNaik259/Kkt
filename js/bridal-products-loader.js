@@ -434,8 +434,27 @@ const BridalProductsLoader = (function() {
         console.log('Bridal product data extracted:', productData);
         
         // Call the global wishlist manager if available
-        if (typeof WishlistManager !== 'undefined' && WishlistManager.addToWishlist) {
-            WishlistManager.addToWishlist(productData);
+        if (typeof WishlistManager !== 'undefined') {
+            // Check if item is already in wishlist and toggle accordingly
+            if (WishlistManager.isInWishlist(productId)) {
+                console.log('Removing from wishlist:', productName);
+                WishlistManager.removeFromWishlist(productId);
+                // Update icon to regular heart
+                const icon = button.querySelector('i');
+                if (icon) {
+                    icon.classList.add('far');
+                    icon.classList.remove('fas');
+                }
+            } else {
+                console.log('Adding to wishlist:', productName);
+                WishlistManager.addToWishlist(productData);
+                // Update icon to solid heart
+                const icon = button.querySelector('i');
+                if (icon) {
+                    icon.classList.remove('far');
+                    icon.classList.add('fas');
+                }
+            }
         } else {
             console.error('WishlistManager not available');
             // Fallback: show a simple message

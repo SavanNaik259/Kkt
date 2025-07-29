@@ -1094,8 +1094,8 @@ const WishlistManager = (function() {
      * to reflect whether items are in the wishlist
      */
     function updateWishlistButtonsState() {
-        // Update product card wishlist buttons
-        document.querySelectorAll('.product-item, .product-card, .arrival-item').forEach(card => {
+        // Update product card wishlist buttons (including bridal cards)
+        document.querySelectorAll('.product-item, .product-card, .arrival-item, .bridal-card').forEach(card => {
             const productId = card.dataset.productId || card.dataset.id;
             const wishlistButton = card.querySelector('.add-to-wishlist');
             
@@ -1104,9 +1104,11 @@ const WishlistManager = (function() {
                 // We need to maintain consistent appearance regardless of wishlist state
                 // Only change the icon type (solid vs regular) to indicate status
                 
-                // Keep wishlist button styling consistent
-                wishlistButton.style.backgroundColor = 'white'; // Force white background
-                wishlistButton.style.color = '#333'; // Default text color
+                // Keep wishlist button styling consistent for regular products
+                if (!card.classList.contains('bridal-card') && !card.classList.contains('arrival-item')) {
+                    wishlistButton.style.backgroundColor = 'white'; // Force white background
+                    wishlistButton.style.color = '#333'; // Default text color
+                }
                 
                 const icon = wishlistButton.querySelector('i');
                 if (icon) {
