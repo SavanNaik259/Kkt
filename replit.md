@@ -153,13 +153,17 @@ Auric is a premium jewelry e-commerce platform built with a modern web stack fea
   - Created `test-admin-panel-fix.html` for testing and validating the fix
 - July 29, 2025: Implemented comprehensive cache invalidation system to fix product visibility issue
   - Issue: New products added via admin panel only show after manual browser cache clearing
-  - Root cause: Multiple cache layers (localStorage, ETag validation, module cache) not synchronized
-  - Created `js/cache-invalidator.js` - comprehensive cache management system
+  - Root cause: Multiple cache layers (localStorage, ETag validation, module cache, browser HTTP cache) not synchronized
+  - Created `js/cache-invalidator.js` - comprehensive cache management system with nuclear options
   - Environment-aware cache invalidation (detects Netlify vs local development)
-  - Updated `admin-panel.html` to use new cache invalidation system after product upload
-  - Enhanced `js/bridal-products-loader.js` with cache invalidation flag detection
+  - Updated `admin-panel.html` to use aggressive cache invalidation system after product upload
+  - Enhanced `js/bridal-products-loader.js` with cache invalidation flag detection and force refresh capability
+  - Fixed deployed site to use Netlify function endpoint instead of direct Firebase Storage CDN for proper cache control
   - Updated `test-real-products.html` and `index.html` to include cache invalidation system
-  - Cache invalidation now properly clears: localStorage, ETag validation, module caches, and triggers fresh reloads
+  - Added aggressive browser HTTP cache clearing and "nuclear option" page reload if cache invalidation fails
+  - Cache invalidation now properly clears: localStorage, ETag validation, module caches, browser HTTP cache, and triggers fresh reloads
+  - Added verification system that automatically forces page reload if cache invalidation doesn't work
+  - **Nuclear Option**: Admin panel now automatically refreshes the page after product upload to guarantee cache clearing
   - New products should now appear immediately after adding through admin panel without manual cache clearing
   - Admin panel now correctly loads existing products before adding new ones on both local and deployed sites
 - July 13, 2025: Confirmed Firebase Storage CDN caching works perfectly for bandwidth optimization

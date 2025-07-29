@@ -133,23 +133,46 @@ window.CacheInvalidator = (function() {
      * Trigger fresh reload of product loaders
      */
     async function triggerFreshReload() {
-        console.log('🔄 Triggering fresh reload of product loaders...');
+        console.log('🔄 Triggering aggressive fresh reload of product loaders...');
         
         // Trigger BridalProductsLoader refresh if available
         if (window.BridalProductsLoader && typeof window.BridalProductsLoader.loadBridalProducts === 'function') {
             try {
-                console.log('🔄 Refreshing BridalProductsLoader...');
+                console.log('🔄 Force refreshing BridalProductsLoader with cache bypass...');
+                
+                // First clear the loader's internal cache
+                if (typeof window.BridalProductsLoader.clearCache === 'function') {
+                    window.BridalProductsLoader.clearCache();
+                    console.log('🧹 Cleared BridalProductsLoader internal cache');
+                }
+                
+                // Force refresh with forceRefresh=true
                 await window.BridalProductsLoader.loadBridalProducts(true);
-                console.log('✅ BridalProductsLoader refreshed');
+                console.log('✅ BridalProductsLoader force refreshed');
                 
                 // Update bridal section if available
                 if (typeof window.BridalProductsLoader.updateBridalSection === 'function') {
                     window.BridalProductsLoader.updateBridalSection();
-                    console.log('✅ Bridal section updated');
+                    console.log('✅ Bridal section updated with fresh data');
                 }
+                
+                // Double-check by doing another refresh after a short delay
+                setTimeout(async () => {
+                    try {
+                        console.log('🔄 Double-checking with secondary refresh...');
+                        await window.BridalProductsLoader.loadBridalProducts(true);
+                        window.BridalProductsLoader.updateBridalSection();
+                        console.log('✅ Secondary refresh completed');
+                    } catch (e) {
+                        console.warn('⚠️ Secondary refresh failed:', e);
+                    }
+                }, 1000);
+                
             } catch (e) {
                 console.warn('❌ Failed to refresh BridalProductsLoader:', e);
             }
+        } else {
+            console.warn('⚠️ BridalProductsLoader not available for refresh');
         }
     }
 
@@ -171,10 +194,13 @@ window.CacheInvalidator = (function() {
             // Step 3: Set cache invalidation flag for future loads
             const invalidationFlag = setCacheInvalidationFlag();
 
-            // Step 4: Force server cache invalidation
+            // Step 4: Force aggressive browser cache clearing
+            await clearBrowserHttpCache();
+
+            // Step 5: Force server cache invalidation
             const serverInvalidated = await forceCacheInvalidation(category);
 
-            // Step 5: Trigger fresh reload of loaders
+            // Step 6: Trigger fresh reload of loaders with force refresh
             await triggerFreshReload();
 
             const duration = Date.now() - startTime;
@@ -206,6 +232,43 @@ window.CacheInvalidator = (function() {
     }
 
     /**
+     * Clear browser HTTP cache aggressively
+     */
+    async function clearBrowserHttpCache() {
+        console.log('🌐 Clearing browser HTTP cache...');
+        
+        const env = getEnvironment();
+        const timestamp = Date.now();
+        
+        // Create multiple cache-busting requests to flush browser cache
+        const urls = [
+            env.isNetlify ? `/.netlify/functions/load-products?category=bridal&flush=${timestamp}` : `/api/load-products/bridal?flush=${timestamp}`,
+            env.isNetlify ? `/.netlify/functions/load-products?category=bridal&bust=${timestamp}` : `/api/load-products/bridal?bust=${timestamp}`,
+        ];
+        
+        const promises = urls.map(url => {
+            return fetch(url, {
+                method: 'GET',
+                cache: 'no-store',
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                }
+            }).then(response => {
+                console.log(`🗑️ Browser cache bust request: ${url} - ${response.status}`);
+                return response.ok;
+            }).catch(error => {
+                console.warn(`⚠️ Browser cache bust failed for ${url}:`, error);
+                return false;
+            });
+        });
+        
+        await Promise.all(promises);
+        console.log('✅ Browser HTTP cache clearing completed');
+    }
+
+    /**
      * Simple cache clear for manual testing
      */
     function clearAllCaches() {
@@ -213,6 +276,32 @@ window.CacheInvalidator = (function() {
         clearLocalStorageCache();
         clearModuleCaches();
         console.log('✅ Manual cache clear completed');
+    }
+
+    /**
+     * Nuclear option: Force page reload if cache invalidation isn't working
+     */
+    function forcePageReload(delay = 2000) {
+        console.log('💥 Nuclear cache clear: forcing page reload in', delay, 'ms');
+        setTimeout(() => {
+            window.location.reload(true); // Force reload from server
+        }, delay);
+    }
+
+    /**
+     * Check if cache invalidation is working properly
+     */
+    function isCacheInvalidationWorking() {
+        const flag = localStorage.getItem('lastProductUpdate');
+        const cacheTime = localStorage.getItem('bridalProductsTime');
+        
+        if (!flag) return true; // No invalidation needed
+        
+        const flagTime = parseInt(flag);
+        const cache = parseInt(cacheTime || '0');
+        
+        // If flag is newer than cache, invalidation is pending
+        return flagTime <= cache;
     }
 
     // Public API
@@ -223,7 +312,10 @@ window.CacheInvalidator = (function() {
         getApiEndpoint,
         setCacheInvalidationFlag,
         forceCacheInvalidation,
-        triggerFreshReload
+        triggerFreshReload,
+        forcePageReload,
+        isCacheInvalidationWorking,
+        clearBrowserHttpCache
     };
 })();
 

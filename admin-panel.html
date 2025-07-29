@@ -667,7 +667,7 @@
 
                 // Clear ALL caches and force fresh reload using the comprehensive cache invalidation system
                 try {
-                    console.log('🧹 Starting comprehensive cache invalidation after successful upload...');
+                    console.log('🧹 Starting aggressive cache invalidation after successful upload...');
                     
                     // Use the global cache invalidation system if available
                     if (window.CacheInvalidator && window.CacheInvalidator.invalidateAllCaches) {
@@ -675,15 +675,45 @@
                             if (result.success) {
                                 console.log('✅ Comprehensive cache invalidation completed successfully');
                                 console.log('📊 Cache invalidation results:', result);
+                                
+                                // Additional verification: wait a moment then check if cache invalidation worked
+                                setTimeout(() => {
+                                    if (window.CacheInvalidator.isCacheInvalidationWorking && 
+                                        !window.CacheInvalidator.isCacheInvalidationWorking()) {
+                                        console.log('🚨 Cache invalidation verification failed, using nuclear option');
+                                        
+                                        // Show user message about refresh
+                                        const refreshMessage = document.createElement('div');
+                                        refreshMessage.style.cssText = 'position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #ff9800; color: white; padding: 15px 25px; border-radius: 8px; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.3);';
+                                        refreshMessage.innerHTML = '🔄 Refreshing page to ensure new product appears...';
+                                        document.body.appendChild(refreshMessage);
+                                        
+                                        // Force page reload as nuclear option
+                                        window.CacheInvalidator.forcePageReload(3000);
+                                    } else {
+                                        console.log('✅ Cache invalidation verification passed');
+                                    }
+                                }, 2000);
+                                
                             } else {
                                 console.error('❌ Cache invalidation failed:', result.error);
+                                // Fallback to nuclear option if cache invalidation failed
+                                console.log('🚨 Using nuclear cache clear option due to failure');
+                                if (window.CacheInvalidator.forcePageReload) {
+                                    window.CacheInvalidator.forcePageReload(2000);
+                                }
                             }
                         }).catch(error => {
                             console.error('❌ Cache invalidation error:', error);
+                            // Fallback to nuclear option on error
+                            console.log('🚨 Using nuclear cache clear option due to error');
+                            if (window.CacheInvalidator && window.CacheInvalidator.forcePageReload) {
+                                window.CacheInvalidator.forcePageReload(2000);
+                            }
                         });
                     } else {
                         // Fallback to manual cache clearing if the system isn't available
-                        console.log('⚠️ CacheInvalidator not available, using fallback method');
+                        console.log('⚠️ CacheInvalidator not available, using fallback method with page reload');
                         
                         // Clear localStorage cache
                         const cacheKeys = ['bridalProducts', 'bridalProductsTime', 'bridalProductsETag', 'lastProductUpdate'];
@@ -703,11 +733,21 @@
                         localStorage.setItem('lastProductUpdate', timestamp.toString());
                         console.log('Set cache invalidation flag:', new Date(timestamp));
                         
-                        console.log('✅ Fallback cache clearing completed');
+                        console.log('✅ Fallback cache clearing completed - forcing page reload');
+                        
+                        // Force page reload as fallback nuclear option
+                        setTimeout(() => {
+                            window.location.reload(true);
+                        }, 2000);
                     }
                     
                 } catch (cacheError) {
                     console.error('❌ Error during cache invalidation process:', cacheError);
+                    // Nuclear option even on errors
+                    setTimeout(() => {
+                        console.log('🚨 Final fallback: forcing page reload due to cache error');
+                        window.location.reload(true);
+                    }, 2000);
                 }
 
                 // Reset form
