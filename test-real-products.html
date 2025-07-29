@@ -314,7 +314,8 @@
         </div>
     </div>
 
-    <!-- Include cache optimizer -->
+    <!-- Include cache system -->
+    <script src="js/cache-invalidator.js"></script>
     <script src="js/cache-optimizer.js"></script>
 
     <script>
@@ -678,10 +679,24 @@
         // Add cache clearing function
         function clearCache() {
             try {
-                localStorage.removeItem('bridalProducts');
-                localStorage.removeItem('bridalProductsTime');
-                localStorage.removeItem('bridalProductsETag');
-                console.log('🧹 Cache cleared successfully');
+                // Use the comprehensive cache invalidation system if available
+                if (window.CacheInvalidator && window.CacheInvalidator.clearAllCaches) {
+                    window.CacheInvalidator.clearAllCaches();
+                    console.log('🧹 Used comprehensive cache clearing system');
+                } else {
+                    // Fallback to manual cache clearing
+                    localStorage.removeItem('bridalProducts');
+                    localStorage.removeItem('bridalProductsTime');
+                    localStorage.removeItem('bridalProductsETag');
+                    localStorage.removeItem('lastProductUpdate');
+                    console.log('🧹 Cache cleared successfully (fallback method)');
+
+                    // Clear module cache if available
+                    if (window.BridalProductsLoader && window.BridalProductsLoader.clearCache) {
+                        window.BridalProductsLoader.clearCache();
+                        console.log('✅ Module cache cleared');
+                    }
+                }
 
                 // Show feedback
                 const infoDiv = document.createElement('div');

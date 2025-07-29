@@ -151,6 +151,16 @@ Auric is a premium jewelry e-commerce platform built with a modern web stack fea
   - Updated `admin-panel.html` to detect environment and use correct endpoint
   - Updated `js/bridal-products-loader.js` to use new generic Netlify function
   - Created `test-admin-panel-fix.html` for testing and validating the fix
+- July 29, 2025: Implemented comprehensive cache invalidation system to fix product visibility issue
+  - Issue: New products added via admin panel only show after manual browser cache clearing
+  - Root cause: Multiple cache layers (localStorage, ETag validation, module cache) not synchronized
+  - Created `js/cache-invalidator.js` - comprehensive cache management system
+  - Environment-aware cache invalidation (detects Netlify vs local development)
+  - Updated `admin-panel.html` to use new cache invalidation system after product upload
+  - Enhanced `js/bridal-products-loader.js` with cache invalidation flag detection
+  - Updated `test-real-products.html` and `index.html` to include cache invalidation system
+  - Cache invalidation now properly clears: localStorage, ETag validation, module caches, and triggers fresh reloads
+  - New products should now appear immediately after adding through admin panel without manual cache clearing
   - Admin panel now correctly loads existing products before adding new ones on both local and deployed sites
 - July 13, 2025: Confirmed Firebase Storage CDN caching works perfectly for bandwidth optimization
   - Issue: Misunderstanding about Firebase Storage CDN behavior

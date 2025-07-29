@@ -72,16 +72,31 @@ const BridalProductsLoader = (function() {
             return [];
         }
 
+        // Check if admin panel has invalidated cache by setting lastProductUpdate
+        const lastProductUpdate = localStorage.getItem('lastProductUpdate');
+        let cacheInvalidated = false;
+        
+        if (lastProductUpdate) {
+            const updateTime = parseInt(lastProductUpdate);
+            const cacheTime = parseInt(localStorage.getItem('bridalProductsTime') || '0');
+            
+            if (updateTime > cacheTime) {
+                console.log('🚨 Cache invalidated by admin panel update:', new Date(updateTime));
+                cacheInvalidated = true;
+                forceRefresh = true;
+            }
+        }
+
         // Check memory cache first
         const now = Date.now();
         
-        if (!forceRefresh && cachedProducts && (now - lastFetchTime) < CACHE_DURATION) {
+        if (!forceRefresh && !cacheInvalidated && cachedProducts && (now - lastFetchTime) < CACHE_DURATION) {
             console.log('Using memory cached bridal products');
             return cachedProducts;
         }
 
         // Check localStorage cache with ETag validation
-        if (!forceRefresh) {
+        if (!forceRefresh && !cacheInvalidated) {
             try {
                 const stored = localStorage.getItem('bridalProducts');
                 const storedTime = localStorage.getItem('bridalProductsTime');
@@ -224,6 +239,12 @@ const BridalProductsLoader = (function() {
                     localStorage.setItem('bridalProductsETag', cachedETag);
                 }
                 console.log('Cached', products.length, 'products with ETag:', cachedETag?.substring(0, 8) + '...');
+                
+                // Clear the product update flag since we've successfully loaded fresh data
+                if (cacheInvalidated) {
+                    localStorage.removeItem('lastProductUpdate');
+                    console.log('✅ Cleared cache invalidation flag after successful fresh load');
+                }
             } catch (e) {
                 console.warn('Error saving to localStorage cache:', e);
             }

@@ -279,6 +279,9 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
 
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
+    
+    <!-- Cache Invalidation System -->
+    <script src="js/cache-invalidator.js"></script>
 
     <script>
         // Firebase configuration
@@ -662,36 +665,49 @@
                 `;
                 successMessage.style.display = 'block';
 
-                // Clear ALL caches and force fresh reload
+                // Clear ALL caches and force fresh reload using the comprehensive cache invalidation system
                 try {
-                    // Clear localStorage cache
-                    localStorage.removeItem('bridalProducts');
-                    localStorage.removeItem('bridalProductsTime');
-                    localStorage.removeItem('bridalProductsETag');
+                    console.log('🧹 Starting comprehensive cache invalidation after successful upload...');
                     
-                    // Clear BridalProductsLoader cache if available
-                    if (window.BridalProductsLoader && window.BridalProductsLoader.clearCache) {
-                        window.BridalProductsLoader.clearCache();
+                    // Use the global cache invalidation system if available
+                    if (window.CacheInvalidator && window.CacheInvalidator.invalidateAllCaches) {
+                        window.CacheInvalidator.invalidateAllCaches(productCategory).then(result => {
+                            if (result.success) {
+                                console.log('✅ Comprehensive cache invalidation completed successfully');
+                                console.log('📊 Cache invalidation results:', result);
+                            } else {
+                                console.error('❌ Cache invalidation failed:', result.error);
+                            }
+                        }).catch(error => {
+                            console.error('❌ Cache invalidation error:', error);
+                        });
+                    } else {
+                        // Fallback to manual cache clearing if the system isn't available
+                        console.log('⚠️ CacheInvalidator not available, using fallback method');
+                        
+                        // Clear localStorage cache
+                        const cacheKeys = ['bridalProducts', 'bridalProductsTime', 'bridalProductsETag', 'lastProductUpdate'];
+                        cacheKeys.forEach(key => {
+                            localStorage.removeItem(key);
+                            console.log(`Cleared localStorage: ${key}`);
+                        });
+                        
+                        // Clear BridalProductsLoader cache if available
+                        if (window.BridalProductsLoader && window.BridalProductsLoader.clearCache) {
+                            window.BridalProductsLoader.clearCache();
+                            console.log('Cleared BridalProductsLoader cache');
+                        }
+                        
+                        // Set cache invalidation flag
+                        const timestamp = Date.now();
+                        localStorage.setItem('lastProductUpdate', timestamp.toString());
+                        console.log('Set cache invalidation flag:', new Date(timestamp));
+                        
+                        console.log('✅ Fallback cache clearing completed');
                     }
                     
-                    // Force cache busting by adding timestamp
-                    const timestamp = Date.now();
-                    fetch(`/api/load-products/bridal?cacheBust=${timestamp}`, {
-                        method: 'GET',
-                        cache: 'no-store',
-                        headers: {
-                            'Cache-Control': 'no-cache, no-store, must-revalidate',
-                            'Pragma': 'no-cache'
-                        }
-                    }).then(() => {
-                        console.log('Cache invalidated successfully after product upload');
-                    }).catch(err => {
-                        console.warn('Error invalidating cache:', err);
-                    });
-                    
-                    console.log('All product caches cleared after successful upload');
                 } catch (cacheError) {
-                    console.warn('Error clearing product cache:', cacheError);
+                    console.error('❌ Error during cache invalidation process:', cacheError);
                 }
 
                 // Reset form
