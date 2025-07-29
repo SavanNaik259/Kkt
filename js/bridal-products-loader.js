@@ -391,15 +391,47 @@ const BridalProductsLoader = (function() {
             return;
         }
         
-        // Get product data from button attributes
+        // Get the parent product container
+        const productItem = button.closest('.arrival-item') || button.closest('.bridal-card');
+        if (!productItem) {
+            console.error('Product container not found');
+            return;
+        }
+        
+        // Extract product data from the product container elements
+        const productId = productItem.dataset.productId || button.dataset.productId;
+        const productNameEl = productItem.querySelector('.arrival-title');
+        const productName = productNameEl ? productNameEl.textContent.trim() : (button.dataset.productName || 'Unknown Product');
+        
+        // Get price from the price element in the product container
+        const priceElement = productItem.querySelector('.current-price');
+        let productPrice = 0;
+        if (priceElement) {
+            // Extract price from the formatted text (₹15,500.00 format)
+            const priceText = priceElement.textContent.trim();
+            console.log('Raw price text from bridal product:', priceText);
+            
+            // Remove currency symbols and commas, then parse
+            const cleanedPrice = priceText.replace(/[₹,]/g, '').trim();
+            productPrice = parseFloat(cleanedPrice);
+            console.log('Extracted price for bridal product:', productPrice);
+        } else {
+            // Fallback to button data attribute
+            productPrice = parseFloat(button.dataset.productPrice) || 0;
+        }
+        
+        // Get image from the product container
+        const imageElement = productItem.querySelector('.arrival-image img');
+        const productImage = imageElement ? imageElement.src : (button.dataset.productImage || '');
+        
         const productData = {
-            id: button.dataset.productId,
-            name: button.dataset.productName,
-            price: parseFloat(button.dataset.productPrice),
-            image: button.dataset.productImage
+            id: productId,
+            name: productName,
+            price: productPrice,
+            image: productImage
         };
         
-        console.log('Adding product to wishlist:', productData);
+        console.log('Bridal product data extracted:', productData);
         
         // Call the global wishlist manager if available
         if (typeof WishlistManager !== 'undefined' && WishlistManager.addToWishlist) {

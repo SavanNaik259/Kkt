@@ -622,7 +622,7 @@ const WishlistManager = (function() {
                 }
                 
                 // Handle both product-item and bridal-card structures
-                const productItem = this.closest('.product-item') || this.closest('.arrival-item');
+                const productItem = this.closest('.product-item') || this.closest('.arrival-item') || this.closest('.bridal-card');
                 console.log('Found product container:', productItem);
                 
                 if (productItem) {
@@ -630,9 +630,13 @@ const WishlistManager = (function() {
                     console.log('Product ID:', productId);
                     
                     const productNameEl = productItem.querySelector('.product-name') || productItem.querySelector('.arrival-title');
-                    const productName = productNameEl ? productNameEl.textContent : 'Unknown Product';
+                    const productName = productNameEl ? productNameEl.textContent.trim() : 'Unknown Product';
                     console.log('Product name:', productName);
-                    const priceElement = productItem.querySelector('.current-price') || productItem.querySelector('.original-price');
+                    
+                    // Look for price element - handle both regular products and bridal products
+                    const priceElement = productItem.querySelector('.current-price') || 
+                                       productItem.querySelector('.original-price') ||
+                                       productItem.querySelector('.product-pricing .current-price');
                     
                     // Improved price extraction to handle different formats (₹32,500 or Rs. 15,550.00 or ₹15500.00)
                     let productPrice = 0;
@@ -663,8 +667,9 @@ const WishlistManager = (function() {
                                     productPrice = parseFloat(priceText);
                                 }
                             } else {
-                                // Normal price cleaning for other formats
-                                priceText = priceText.replace(/[^0-9.,]/g, '').replace(/,/g, '');
+                                // Normal price cleaning for other formats - handle bridal product currency format
+                                // Remove ₹ symbol and commas, keep decimals
+                                priceText = priceText.replace(/₹|,/g, '').trim();
                                 console.log('Cleaned price text (item):', priceText);
                                 productPrice = parseFloat(priceText);
                             }
@@ -677,6 +682,7 @@ const WishlistManager = (function() {
                             }
                         }
                     }
+                    
                     // Handle both product-image (new arrivals) and arrival-image (bridal cards) structures
                     const imageElement = productItem.querySelector('.product-image img') || productItem.querySelector('.arrival-image img');
                     const productImage = imageElement ? imageElement.src : '';
