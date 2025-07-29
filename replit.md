@@ -164,7 +164,12 @@ Auric is a premium jewelry e-commerce platform built with a modern web stack fea
   - Cache invalidation now properly clears: localStorage, ETag validation, module caches, browser HTTP cache, and triggers fresh reloads
   - Added verification system that automatically forces page reload if cache invalidation doesn't work
   - **Nuclear Option**: Admin panel now automatically refreshes the page after product upload to guarantee cache clearing
+  - **CRITICAL FIX**: Added cache-busting mechanism for admin panel product loading to prevent data overwrite issue
+  - Updated admin panel to use `cacheBust` parameter when loading existing products before adding new ones
+  - Updated both Netlify function and server endpoint to handle cache-busting requests with fresh data
+  - Fixed data persistence issue where new products were overwriting existing ones due to cached product list
   - New products should now appear immediately after adding through admin panel without manual cache clearing
+  - Admin panel now always loads the most recent product list before adding new products, preventing data loss
   - Admin panel now correctly loads existing products before adding new ones on both local and deployed sites
 - July 13, 2025: Confirmed Firebase Storage CDN caching works perfectly for bandwidth optimization
   - Issue: Misunderstanding about Firebase Storage CDN behavior

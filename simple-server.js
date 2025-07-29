@@ -215,16 +215,37 @@ app.post('/api/verify-razorpay-payment', async (req, res) => {
 app.get('/api/load-products/:category', async (req, res) => {
   try {
     const { category } = req.params;
-    console.log(`Loading ${category} products from Firebase Storage CDN...`);
+    const cacheBust = req.query.cacheBust;
+    
+    // Detect if this is a cache-busting request from admin panel
+    const isCacheBust = !!cacheBust;
+    if (isCacheBust) {
+      console.log(`Loading ${category} products with cache busting (${cacheBust}) for admin panel...`);
+    } else {
+      console.log(`Loading ${category} products from Firebase Storage CDN...`);
+    }
 
     // Simple fetch from Firebase Storage - their CDN handles all caching automatically
     // Check if this is a bandwidth test category
     const isBandwidthTest = category.startsWith('bandwidth-test-');
-    const storageUrl = isBandwidthTest 
+    let storageUrl = isBandwidthTest 
       ? `https://firebasestorage.googleapis.com/v0/b/auric-a0c92.firebasestorage.app/o/bandwidthTest%2F${category}-products.json?alt=media`
       : `https://firebasestorage.googleapis.com/v0/b/auric-a0c92.firebasestorage.app/o/productData%2F${category}-products.json?alt=media&token=c6a2eb63-56e3-4fc0-96ac-66773cf45f96`;
 
-    const response = await fetch(storageUrl);
+    // Add cache busting to Firebase Storage URL for admin panel requests
+    if (isCacheBust) {
+      storageUrl += `&fbCacheBust=${cacheBust}`;
+    }
+
+    const fetchOptions = isCacheBust ? {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache'
+      }
+    } : {};
+
+    const response = await fetch(storageUrl, fetchOptions);
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -250,9 +271,9 @@ app.get('/api/load-products/:category', async (req, res) => {
 
     console.log(`Generated ETag for ${category}:`, serverETag);
 
-    // Check if client has current version (ETag validation)
+    // Check if client has current version (ETag validation) - but skip for cache busting
     const clientETag = req.headers['if-none-match'];
-    if (clientETag && clientETag === serverETag) {
+    if (!isCacheBust && clientETag && clientETag === serverETag) {
       console.log(`ETag match for ${category} - returning 304 Not Modified (zero bandwidth)`);
       res.status(304).end();
       return;
@@ -261,13 +282,25 @@ app.get('/api/load-products/:category', async (req, res) => {
     console.log(`ETag mismatch or no client ETag - returning fresh data`);
     console.log(`Successfully loaded ${products.length} ${category} products`);
 
-    // Set proper cache headers including Netlify CDN
-    res.set({
-      'ETag': serverETag,
-      'Cache-Control': 'public, max-age=2592000, must-revalidate', // 1 month browser cache
-      'Netlify-CDN-Cache-Control': 'public, max-age=31536000, must-revalidate', // 1 year CDN cache
-      'Last-Modified': new Date().toUTCString()
-    });
+    // Set cache headers based on request type
+    if (isCacheBust) {
+      // Cache-busting request from admin panel - no caching
+      res.set({
+        'ETag': serverETag,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Last-Modified': new Date().toUTCString()
+      });
+    } else {
+      // Normal request - optimal caching
+      res.set({
+        'ETag': serverETag,
+        'Cache-Control': 'public, max-age=2592000, must-revalidate', // 1 month browser cache
+        'Netlify-CDN-Cache-Control': 'public, max-age=31536000, must-revalidate', // 1 year CDN cache
+        'Last-Modified': new Date().toUTCString()
+      });
+    }
 
     res.json({
       success: true,

@@ -463,18 +463,27 @@
                 try {
                     // Detect environment and use appropriate endpoint
                     const isNetlify = window.location.hostname.includes('netlify') || window.location.hostname.includes('.app');
+                    
+                    // ADD CACHE BUSTING FOR ADMIN PANEL - Always get fresh data when adding products
+                    const cacheBust = `cacheBust=${Date.now()}`;
+                    const separator = isNetlify ? '&' : '?';
+                    
                     const apiEndpoint = isNetlify 
-                        ? `/.netlify/functions/load-products?category=${category}`
-                        : `/api/load-products/${category}`;
+                        ? `/.netlify/functions/load-products?category=${category}&${cacheBust}`
+                        : `/api/load-products/${category}?${cacheBust}`;
                     
-                    console.log('Using endpoint:', apiEndpoint, '(Netlify:', isNetlify, ')');
+                    console.log('Using endpoint with cache busting:', apiEndpoint, '(Netlify:', isNetlify, ')');
                     
-                    // Use the appropriate API endpoint to load products
+                    // Use aggressive cache-busting headers to ensure fresh data
                     const response = await fetch(apiEndpoint, {
                         method: 'GET',
                         headers: {
-                            'Content-Type': 'application/json'
-                        }
+                            'Content-Type': 'application/json',
+                            'Cache-Control': 'no-cache, no-store, must-revalidate',
+                            'Pragma': 'no-cache',
+                            'Expires': '0'
+                        },
+                        cache: 'no-store' // Force bypass browser cache
                     });
                     
                     if (response.ok) {

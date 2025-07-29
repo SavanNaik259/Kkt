@@ -40,6 +40,7 @@ exports.handler = async (event, context) => {
   try {
     // Get category from query parameters
     const category = event.queryStringParameters?.category;
+    const cacheBust = event.queryStringParameters?.cacheBust;
 
     if (!category) {
       return {
@@ -54,19 +55,43 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log(`Loading ${category} products from Cloud Storage...`);
+    // Detect if this is a cache-busting request from admin panel
+    const isCacheBust = !!cacheBust;
+    if (isCacheBust) {
+      console.log(`Loading ${category} products with cache busting (${cacheBust}) for admin panel...`);
+      // Add cache-busting headers for admin panel requests
+      headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+      headers['Pragma'] = 'no-cache';
+      headers['Expires'] = '0';
+    } else {
+      console.log(`Loading ${category} products from Cloud Storage...`);
+    }
 
     // Use direct Firebase Storage URL with alt=media for CDN caching
     // Check if this is a bandwidth test category
     const isBandwidthTest = category.startsWith('bandwidth-test-');
-    const storageUrl = isBandwidthTest 
+    let storageUrl = isBandwidthTest 
       ? `https://firebasestorage.googleapis.com/v0/b/auric-a0c92.firebasestorage.app/o/bandwidthTest%2F${category}-products.json?alt=media`
       : `https://firebasestorage.googleapis.com/v0/b/auric-a0c92.firebasestorage.app/o/productData%2F${category}-products.json?alt=media&token=c6a2eb63-56e3-4fc0-96ac-66773cf45f96`;
-
-    console.log(`Fetching from Firebase Storage CDN: ${storageUrl}`);
+    
+    // Add cache busting to Firebase Storage URL for admin panel requests
+    if (isCacheBust) {
+      storageUrl += `&fbCacheBust=${cacheBust}`;
+      console.log(`Fetching with cache busting from Firebase Storage: ${storageUrl}`);
+    } else {
+      console.log(`Fetching from Firebase Storage CDN: ${storageUrl}`);
+    }
 
     // Use fetch to get the file from Firebase Storage CDN
-    const response = await fetch(storageUrl);
+    const fetchOptions = isCacheBust ? {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache'
+      }
+    } : {};
+    
+    const response = await fetch(storageUrl, fetchOptions);
 
     if (!response.ok) {
       if (response.status === 404) {
